@@ -39,20 +39,6 @@
       font-size: 0.9rem;
       color: #ccc;
     }
-    .dex-button {
-      display: inline-block;
-      background: #ffcc00;
-      color: black;
-      padding: 10px 20px;
-      border-radius: 8px;
-      font-weight: bold;
-      text-decoration: none;
-      margin-top: 20px;
-      transition: background 0.3s;
-    }
-    .dex-button:hover {
-      background: #e6b800;
-    }
   </style>
 </head>
 <body>
@@ -69,8 +55,6 @@
   <input type="number" id="inputCHC" placeholder="Cantidad de CHC a vender" step="1" min="1" />
   <br />
   <button onclick="venderTokens()">Vender CHC</button>
-
-  <a href="https://dexscreener.com/bsc/0xe946732ad8dd1acdb2340806f172b90bc9ceff73" target="_blank" class="dex-button">Ver y Comprar en DexScreener 🧪</a>
 
   <div class="info" id="status"></div>
 
@@ -97,25 +81,33 @@
   }
 
   async function comprarTokens() {
-  try {
-    const signer = await conectarWallet();
+    try {
+      const signer = await conectarWallet();
+      const contrato = new ethers.Contract(contratoDireccion, contratoABI, signer);
 
-    const tx = await signer.sendTransaction({
-      to: contratoDireccion,
-      value: ethers.utils.parseEther(document.getElementById("inputBNB").value),
-      gasLimit: 150000
-    });
+      const inputBNB = document.getElementById("inputBNB");
+      let cantidadBNB = inputBNB.value;
+      if (!cantidadBNB || cantidadBNB <= 0) {
+        alert("Por favor ingresa una cantidad válida de BNB.");
+        return;
+      }
 
-    document.getElementById("status").innerText = `⌛ Transacción enviada. Esperando confirmación... TX: ${tx.hash}`;
-    await tx.wait();
-    document.getElementById("status").innerText = `✅ Compra realizada con éxito. TX: ${tx.hash}`;
+      const valorWei = ethers.utils.parseEther(cantidadBNB);
 
-  } catch (error) {
-    console.error(error);
-    alert("❌ Error al comprar tokens: " + (error.data?.message || error.message));
+      const tx = await contrato.buyTokens({
+        value: valorWei,
+        gasLimit: 100000
+      });
+
+      document.getElementById("status").innerText = `⌛ Transacción enviada. Esperando confirmación... TX: ${tx.hash}`;
+      await tx.wait();
+      document.getElementById("status").innerText = `✅ Compra realizada con éxito. TX: ${tx.hash}`;
+
+    } catch (error) {
+      console.error(error);
+      alert("❌ Error al comprar tokens: " + (error.data?.message || error.message));
+    }
   }
-}
-
 
   async function venderTokens() {
     try {
