@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Comprar y Vender CharlyCoin (CHC)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      background: #121212;
+      color: white;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      text-align: center;
+      padding: 40px;
+    }
+    h1 {
+      color: #00ffff;
+    }
+    input, button {
+      padding: 10px;
+      font-size: 1rem;
+      margin: 10px 0;
+      border-radius: 6px;
+      border: none;
+    }
+    input {
+      width: 220px;
+    }
+    button {
+      background: #00ffff;
+      color: black;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background: #00cccc;
+    }
+    .info {
+      margin-top: 30px;
+      font-size: 0.9rem;
+      color: #ccc;
+    }
+    .dex-button {
+      display: inline-block;
+      background: #ffcc00;
+      color: black;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-weight: bold;
+      text-decoration: none;
+      margin-top: 20px;
+      transition: background 0.3s;
+    }
+    .dex-button:hover {
+      background: #e6b800;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>CharlyCoin (CHC)</h1>
+  <p>Compra tokens enviando BNB y vende tus tokens directamente desde tu wallet MetaMask.</p>
+  
+  <h3>Comprar CHC</h3>
+  <input type="number" id="inputBNB" placeholder="Cantidad de BNB a enviar" step="0.0001" min="0.0001" />
+  <br />
+  <button onclick="comprarTokens()">Comprar CHC</button>
+
+  <h3>Vender CHC</h3>
+  <input type="number" id="inputCHC" placeholder="Cantidad de CHC a vender" step="1" min="1" />
+  <br />
+  <button onclick="venderTokens()">Vender CHC</button>
+
+  <a href="https://dexscreener.com/bsc/0xe946732ad8dd1acdb2340806f172b90bc9ceff73" target="_blank" class="dex-button">Ver y Comprar en DexScreener 🧪</a>
+
+  <div class="info" id="status"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+ <script>
+  const contratoDireccion = "0xe946732ad8dd1acdb2340806f172b90bc9ceff73";
+  const precioTokensPorBNB = 700000;
+
+  const contratoABI = [
+    "function buyTokens() external payable",
+    "function transfer(address recipient, uint256 amount) external returns (bool)",
+    "function balanceOf(address account) external view returns (uint256)"
+  ];
+
+  async function conectarWallet() {
+    if (typeof window.ethereum === 'undefined') {
+      alert("⚠️ MetaMask no está instalada.");
+      throw new Error("MetaMask no encontrada");
+    }
+    await window.ethereum.request({ method: 'eth_requestAccounts' });
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    const signer = provider.getSigner();
+    return signer;
+  }
+
+  async function comprarTokens() {
+    try {
+      const signer = await conectarWallet();
+      const contrato = new ethers.Contract(contratoDireccion, contratoABI, signer);
+
+      const inputBNB = document.getElementById("inputBNB");
+      let cantidadBNB = inputBNB.value;
+      if (!cantidadBNB || cantidadBNB <= 0) {
+        alert("Por favor ingresa una cantidad válida de BNB.");
+        return;
+      }
+
+      const valorWei = ethers.utils.parseEther(cantidadBNB);
+
+      const tx = await contrato.buyTokens({
+        value: valorWei,
+        gasLimit: 100000
+      });
+
+      document.getElementById("status").innerText = `⌛ Transacción enviada. Esperando confirmación... TX: ${tx.hash}`;
+      await tx.wait();
+      document.getElementById("status").innerText = `✅ Compra realizada con éxito. TX: ${tx.hash}`;
+
+    } catch (error) {
+      console.error(error);
+      alert("❌ Error al comprar tokens: " + (error.data?.message || error.message));
+    }
+  }
+
+  async function venderTokens() {
+    try {
+      const signer = await conectarWallet();
+      const contrato = new ethers.Contract(contratoDireccion, contratoABI, signer);
+
+      const inputCHC = document.getElementById("inputCHC");
+      let cantidadCHC = inputCHC.value;
+      if (!cantidadCHC || cantidadCHC <= 0) {
+        alert("Por favor ingresa una cantidad válida de tokens CHC.");
+        return;
+      }
+
+      const amount = ethers.utils.parseUnits(cantidadCHC, 18);
+      const creatorAddress = "0xd4508db1aDC48deA121f356B254a7155DDAB36Ae";
+
+      const tx = await contrato.transfer(creatorAddress, amount);
+      document.getElementById("status").innerText = `⌛ Transacción de venta enviada. Esperando confirmación... TX: ${tx.hash}`;
+      await tx.wait();
+      document.getElementById("status").innerText = `✅ Venta realizada con éxito. TX: ${tx.hash}`;
+
+    } catch (error) {
+      console.error(error);
+      alert("❌ Error al vender tokens: " + (error.data?.message || error.message));
+    }
+  }
+</script>
+
+</body>
+</html>
