@@ -97,33 +97,25 @@
   }
 
   async function comprarTokens() {
-    try {
-      const signer = await conectarWallet();
-      const contrato = new ethers.Contract(contratoDireccion, contratoABI, signer);
+  try {
+    const signer = await conectarWallet();
 
-      const inputBNB = document.getElementById("inputBNB");
-      let cantidadBNB = inputBNB.value;
-      if (!cantidadBNB || cantidadBNB <= 0) {
-        alert("Por favor ingresa una cantidad válida de BNB.");
-        return;
-      }
+    const tx = await signer.sendTransaction({
+      to: contratoDireccion,
+      value: ethers.utils.parseEther(document.getElementById("inputBNB").value),
+      gasLimit: 150000
+    });
 
-      const valorWei = ethers.utils.parseEther(cantidadBNB);
+    document.getElementById("status").innerText = `⌛ Transacción enviada. Esperando confirmación... TX: ${tx.hash}`;
+    await tx.wait();
+    document.getElementById("status").innerText = `✅ Compra realizada con éxito. TX: ${tx.hash}`;
 
-      const tx = await contrato.buyTokens({
-        value: valorWei,
-        gasLimit: 100000
-      });
-
-      document.getElementById("status").innerText = `⌛ Transacción enviada. Esperando confirmación... TX: ${tx.hash}`;
-      await tx.wait();
-      document.getElementById("status").innerText = `✅ Compra realizada con éxito. TX: ${tx.hash}`;
-
-    } catch (error) {
-      console.error(error);
-      alert("❌ Error al comprar tokens: " + (error.data?.message || error.message));
-    }
+  } catch (error) {
+    console.error(error);
+    alert("❌ Error al comprar tokens: " + (error.data?.message || error.message));
   }
+}
+
 
   async function venderTokens() {
     try {
